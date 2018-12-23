@@ -1,5 +1,6 @@
 # Launch Library Slack Bot
 Daily rocket launch notifications and reminders from [launchlibrary.net](https://launchlibrary.net)
+
 Launch Library Bot is a 3rd party integration into [launchlibrary.net](https://launchlibrary.net) and is not directly affiliated with the Launch Library project.  Please direct all support requests and questions to the author of this bot.
 
 ## Installation
@@ -10,7 +11,7 @@ Make sure you're logged into Slack and then ...
 
 ## Usage
 
-Use the Slack command `/launch_library_subscribe <UTC hour of day 0-23>` to enroll the current channel in daily rocket launch notifications at a specific time of day.
+Once the Slack app is installed to your workspace use the Slack command `/launch_library_subscribe <UTC hour of day 0-23>` to enroll the current channel in daily rocket launch notifications at a specific time of day.
 
 Example:
 `/launch_library_subscribe 13`
