@@ -234,59 +234,74 @@ async function slackAction(event, context, callback) {
       if (body.token !== settings.VERIFICATION_TOKEN) {
         resp_msg = failureResponse('API Verification error');
       } else {
-        let [time_of_day, ...rest] = body.text.split(/\s+/);
+        if(body.command === '/launch_library_subscribe') {
+          let [time_of_day, ...rest] = body.text.split(/\s+/);
 
-        if (time_of_day !== undefined && time_of_day !== null && time_of_day !== '') {
-          if (time_of_day.includes(':')) {
-            [time_of_day, ...rest] = time_of_day.split(':');
-          }
-          time_of_day = parseInt(time_of_day);
+          if (time_of_day !== undefined && time_of_day !== null && time_of_day !== '') {
+            if (time_of_day.includes(':')) {
+              [time_of_day, ...rest] = time_of_day.split(':');
+            }
+            time_of_day = parseInt(time_of_day);
 
-          if(time_of_day >= 0 && time_of_day < 24) {
-            await dynamodb.putItem({
-              Item: {
-                channel_id: {
-                  S: body.channel_id
+            if(time_of_day >= 0 && time_of_day < 24) {
+              await dynamodb.putItem({
+                Item: {
+                  channel_id: {
+                    S: body.channel_id
+                  },
+                  channel_name: {
+                    S: body.channel_name
+                  },
+                  team_id: {
+                    S: body.team_id
+                  },
+                  team_domain: {
+                    S: body.team_domain
+                  },
+                  user_id: {
+                    S: body.user_id
+                  },
+                  user_name: {
+                    S: body.user_name
+                  },
+                  time_of_day: {
+                    N: time_of_day.toString()
+                  }
                 },
-                channel_name: {
-                  S: body.channel_name
-                },
-                team_id: {
-                  S: body.team_id
-                },
-                team_domain: {
-                  S: body.team_domain
-                },
-                user_id: {
-                  S: body.user_id
-                },
-                user_name: {
-                  S: body.user_name
-                },
-                time_of_day: {
-                  N: time_of_day.toString()
-                }
-              },
-              TableName: 'launch_library_channel'
-            }).promise();
+                TableName: 'launch_library_channel'
+              }).promise();
 
-            resp_msg = {
-              text: `Launch Library Bot successfully enrolled on channel ${body.channel_name} for notification at ${time_of_day}:00 UTC`
-            };
+              resp_msg = {
+                text: `Launch Library Bot successfully enrolled on channel ${body.channel_name} for notification at ${time_of_day}:00 UTC`
+              };
+            } else {
+              resp_msg = {
+                "attachments": [{
+                  "text": "The time of day argument must be an hour between 0 and 23",
+                  "color": "#a94442"
+                }]
+              };
+            }
           } else {
             resp_msg = {
               "attachments": [{
-                "text": "The time of day argument must be an hour between 0 and 23",
+                "text": "Please specify one argument to the /launch_library_subscribe command.  Example: /launch_library_subscribe 13",
                 "color": "#a94442"
               }]
             };
           }
-        } else {
+        } else if(body.command === '/launch_library_unsubscribe') {
+          const d_resp = await dynamodb.deleteItem({
+            Key: {
+              channel_id: {
+                S: body.channel_id
+              }
+            },
+            TableName: 'launch_library_channel'
+          }).promise();
+
           resp_msg = {
-            "attachments": [{
-              "text": "Please specify one argument to the /launch_library_subscribe command.  Example: /launch_library_subscribe 13",
-              "color": "#a94442"
-            }]
+            text: `Launch Library Bot successfully withdrew from channel ${body.channel_name}`
           };
         }
       }

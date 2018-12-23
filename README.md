@@ -19,3 +19,7 @@ Example:
 `/launch_library_subscribe 13`
 
 This will enroll the current channel on daily launch notifications at 13:00 UTC
+
+`/launch_library_unsubscribe`
+
+This will withdraw a channel from notifications.
