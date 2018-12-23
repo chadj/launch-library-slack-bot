@@ -301,7 +301,7 @@ async function slackAction(event, context, callback) {
           }).promise();
 
           resp_msg = {
-            text: `Launch Library Bot successfully withdrew from channel ${body.channel_name}`
+            text: `Launch Library Bot successfully withdrew channel ${body.channel_name} from notifications`
           };
         }
       }
