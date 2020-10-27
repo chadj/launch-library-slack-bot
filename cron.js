@@ -6,8 +6,6 @@ const settings = require('./settings');
 async function poll(event, context, callback) {
   const now = new Date();
   let current_time_of_day = now.getUTCHours();
-  /// REMOVE
-  current_time_of_day = 21;
 
   const dynamodb = new DynamoDB();
   const d_resp = await dynamodb.query({
