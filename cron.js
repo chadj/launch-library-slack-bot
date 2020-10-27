@@ -6,6 +6,8 @@ const settings = require('./settings');
 async function poll(event, context, callback) {
   const now = new Date();
   let current_time_of_day = now.getUTCHours();
+  /// REMOVE
+  current_time_of_day = 21;
 
   const dynamodb = new DynamoDB();
   const d_resp = await dynamodb.query({
@@ -21,9 +23,11 @@ async function poll(event, context, callback) {
   if(d_resp.Count > 0) {
     const manifest = await request({
       method: 'GET',
-      uri: 'https://launchlibrary.net/1.4/launch',
+      uri: 'https://ll.thespacedevs.com/2.0.0/launch/upcoming/',
       qs: {
-        mode: 'verbose'
+        format: 'json',
+        mode: 'detailed',
+        limit: '20'
       },
       gzip: true,
       headers: {
@@ -38,59 +42,54 @@ async function poll(event, context, callback) {
 
     const messages = [];
 
-    for (const launch of manifest.launches) {
-      if (!launch.windowstart) {
+    for (const launch of manifest.results) {
+      if (!launch.window_start) {
         return;
       }
 
-      const window_start_date = new Date(launch.windowstart);
+      const window_start_date = new Date(launch.window_start);
       let window_endtest_date;
-      if (launch.windowend) {
-        window_endtest_date = new Date(launch.windowend);
+      if (launch.window_end) {
+        window_endtest_date = new Date(launch.window_end);
       } else {
         window_endtest_date = window_start_date;
       }
-      if (launch.tbdtime === 0 && ((window_start_date >= cutoff_start && window_start_date < cutoff_end) ||
+      if (!launch.tbdtime && ((window_start_date >= cutoff_start && window_start_date < cutoff_end) ||
           (window_endtest_date >= cutoff_start && window_endtest_date < cutoff_end))) {
         // Launch today
         const window_start = moment(window_start_date).tz(settings.SLACK_TZ_NAME);
         const window_start_fmt = window_start.format("M/D h:mm A zz");
-        const window_start_unx = launch.wsstamp;
+        const window_start_unx = window_start_date.getTime() / 1000;
 
         let window_end;
         let window_end_fmt;
         let window_end_unx;
-        if (launch.windowend) {
-          window_end = moment(new Date(launch.windowend)).tz(settings.SLACK_TZ_NAME);
+        if (launch.window_end) {
+          let window_end_date = new Date(launch.window_end);
+          window_end = moment(window_end_date).tz(settings.SLACK_TZ_NAME);
           window_end_fmt = window_end.format("M/D h:mm A zz");
-          window_end_unx = launch.westamp;
+          window_end_unx = window_end_date.getTime() / 1000;
         }
 
         let net;
         let net_fmt;
         let net_unx;
         if (launch.net) {
-          net = moment(new Date(launch.net)).tz(settings.SLACK_TZ_NAME);
+          let net_date = new Date(launch.net);
+          net = moment(net_date).tz(settings.SLACK_TZ_NAME);
           net_fmt = net.format("M/D h:mm A zz");
-          net_unx = launch.netstamp;
+          net_unx = net_date.getTime() / 1000;
         }
 
         const name_extra = [];
-        if (launch.rocket && launch.rocket.wikiURL) {
-          name_extra.push(`<${launch.rocket.wikiURL}|rocket>`);
+        if (launch.rocket && launch.rocket.configuration && launch.rocket.configuration.wiki_url) {
+          name_extra.push(`<${launch.rocket.configuration.wiki_url}|rocket>`);
         }
 
-        if (launch.missions) {
-          let missions = launch.missions.filter(function(m) {
-            return !!m.wikiURL
-          });
-          for (const [idx, m] of missions.entries()) {
-            let mission_num = "";
-            if (missions.length > 1) {
-              mission_num = ` ${(idx + 1)}`;
+        if (launch.infoURLs.length > 0 ) {
+            for (const u of launch.infoURLs) {
+                name_extra.push(`<${u.url}|more>`);
             }
-            name_extra.push(`<${m.wikiURL}|mission${mission_num}>`);
-          };
         }
 
         let name_extra_fmt = "";
@@ -112,31 +111,28 @@ async function poll(event, context, callback) {
             message += `Window: <!date^${window_start_unx}^{date_short_pretty} at {time}|${window_start_fmt}>\n`;
           }
         }
-        if (launch.location && launch.location.pads && launch.location.pads.length > 0 && launch.location.pads[0].name) {
+        if (launch.pad && launch.pad.name) {
           const launch_extra = [];
-          if (launch.location.pads[0].wikiURL) {
-            launch_extra.push(`<${launch.location.pads[0].wikiURL}|wiki>`);
+          if (launch.pad.wiki_url) {
+            launch_extra.push(`<${launch.pad.wiki_url}|wiki>`);
           }
-          if (launch.location.pads[0].mapURL) {
-            launch_extra.push(`<${launch.location.pads[0].mapURL}|map>`);
+          if (launch.pad.map_url) {
+            launch_extra.push(`<${launch.pad.map_url}|map>`);
           }
           let lauch_extra_fmt = "";
           if (launch_extra.length > 0) {
             lauch_extra_fmt = ` (${launch_extra.join(", ")})`;
           }
-          message += `${launch.location.pads[0].name}${lauch_extra_fmt}\n`;
+          message += `${launch.pad.name}${lauch_extra_fmt}\n`;
         }
-        if (launch.missions) {
-          for (const mission of launch.missions) {
-            message += `\n${mission.description}\n`;
-          }
+        if (launch.mission.description) {
+          message += `\n${launch.mission.description}\n`;
         }
 
-        if (launch.rocket && launch.rocket.imageURL) {
-          const imgUrl = imgUrlChoose(launch.rocket.imageURL, launch.rocket.imageSizes);
-          if (imgUrl) {
-            message += `\n<${imgUrl}|:rocket:>\n`;
-          }
+        if(launch.infographic) {
+            message += `\n<${launch.infographic}|:rocket:>\n`;
+        } else if(launch.image) {
+            message += `\n<${launch.image}|:rocket:>\n`;
         }
 
         const attachments = [];
@@ -158,8 +154,8 @@ async function poll(event, context, callback) {
             actions.push({
               "type": "button",
               "text": `Watch Live${txt_extra}`,
-              "fallback": `Watch it live at ${u}`,
-              "url": u
+              "fallback": `Watch it live at ${u.url}`,
+              "url": u.url
             });
           }
         }
@@ -211,6 +207,7 @@ async function poll(event, context, callback) {
 }
 
 async function handleMessages(channel_id, bot_access_token, messages) {
+  console.log(channel_id, bot_access_token, messages);
   for (const message of messages) {
     let slack_msg = {
       channel: channel_id,
@@ -233,21 +230,6 @@ async function handleMessages(channel_id, bot_access_token, messages) {
       throw new Error(`Slack chat.postMessage error: ${JSON.stringify(slack_msg)}\n\n${JSON.stringify(body, false, null)}`);
     }
   }
-}
-
-function imgUrlChoose(baseurl, versions) {
-  if (baseurl.includes('placeholder')) {
-    return '';
-  }
-  let url_split = baseurl.split('_');
-  let size_extension = url_split.pop();
-  let size_extension_split = size_extension.split('.');
-  let extension = size_extension_split.pop();
-  let size = versions[1];
-
-  let url = url_split.join('_') + '_' + size + '.' + extension;
-
-  return url;
 }
 
 exports.poll = poll;

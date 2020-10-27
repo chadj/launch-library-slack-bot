@@ -1,7 +1,7 @@
 # Launch Library Slack Bot
-Daily rocket launch notifications and reminders from [launchlibrary.net](https://launchlibrary.net)
+Daily rocket launch notifications and reminders from [The Space Devs](https://thespacedevs.com/llapi)
 
-Launch Library Slack Bot is a 3rd party integration into [launchlibrary.net](https://launchlibrary.net) and is not directly affiliated with the Launch Library project.  Please direct all support requests and questions to the author of this bot.
+Launch Library Slack Bot is a 3rd party integration into [Launch Library 2](https://thespacedevs.com/llapi) and is not directly affiliated with The Space Devs project.  Please direct all support requests and questions to the author of this bot.
 
 Launch Library Slack Bot is implemented as an AWS Lambda function and is deployed onto AWS.
 

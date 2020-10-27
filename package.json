@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "aws-sdk": "^2.246.1",
-    "moment-timezone": "^0.5.17",
-    "request": "^2.87.0",
-    "request-promise-native": "^1.0.5"
+    "moment-timezone": "^0.5.31",
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9"
   },
   "devDependencies": {},
   "scripts": {

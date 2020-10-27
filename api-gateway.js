@@ -158,9 +158,12 @@ async function slackAction(event, context, callback) {
       }
 
       if (user_oauth_access_token) {
-        const manifest = await request({
+        const launch = await request({
           method: 'GET',
-          uri: `https://launchlibrary.net/1.4/launch/${launch_id}`,
+          uri: `https://ll.thespacedevs.com/2.0.0/launch/${launch_id}`,
+          qs: {
+            format: 'json'
+          },
           gzip: true,
           headers: {
             'User-Agent': settings.USER_AGENT
@@ -168,8 +171,7 @@ async function slackAction(event, context, callback) {
           json: true
         });
 
-        const launch = manifest.launches[0];
-        const reminder_date = new Date(launch.windowstart);
+        const reminder_date = new Date(launch.window_start);
         reminder_date.setMinutes(reminder_date.getMinutes() - 10);
         const reminder = moment(reminder_date).tz(settings.SLACK_TZ_NAME);
         const reminder_fmt = reminder.format("M/D h:mm A zz");
@@ -183,7 +185,7 @@ async function slackAction(event, context, callback) {
             if (launch.vidURLs.length > 1) {
               txt_extra = ` #${(idx + 1)}`;
             }
-            vids.push(`<${u}|live stream${txt_extra}>`);
+            vids.push(`<${u.url}|live stream${txt_extra}>`);
           }
           watch_fmt = `  Watch it! ${vids.join(', ')}`;
         }
